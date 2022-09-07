@@ -97,8 +97,13 @@ def path_freq(df: pd.DataFrame) -> pd.Series:
 
 
 def ip_addr_freq(df: pd.DataFrame) -> pd.Series:
-    """Return a Pandas Series containing the requests that originated from each IP address."""
+    """Return a Pandas Series containing the number of requests that originated from each IP address."""
     return df.groupby('ip_addr').size().sort_values(ascending=False)
+
+
+def resp_code_freq(df: pd.DataFrame) -> pd.Series:
+    """Return a Pandas Series containing the count of each response code that was sent by the server."""
+    return df.groupby('resp_code').size().sort_values(ascending=False)
 
 
 def unique_ip_count(df: pd.DataFrame) -> int:
