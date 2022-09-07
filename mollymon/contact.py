@@ -3,11 +3,12 @@
 import logging
 import os
 import sqlite3 as sql
+import threading
+import argparse
+
 from urllib.parse import unquote, urlparse
 from datetime import datetime
 from typing import List, Union, Tuple
-import threading
-import argparse
 
 from platformdirs import user_data_dir, user_log_dir, user_runtime_dir
 
@@ -328,11 +329,10 @@ def main(argv: list[str]):
         logging.getLogger().setLevel(logging.DEBUG)
     if args.log_file:
         logging.basicConfig(filename=args.log_file)
-    return args.func(args)
-    #try:
-    #    return args.func(args)
-    #except AttributeError:
-    #    return parser.print_help()
+    if 'func' in args:
+        return args.func(args)
+    else:
+        return parser.print_help()
 
 
 if __name__ == '__main__':

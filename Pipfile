@@ -6,8 +6,9 @@ name = "pypi"
 [packages]
 platformdirs = "*"
 scgi = "*"
+pandas = "*"
+pytz = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
