@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from mollymon.logstats import access
+from mollymon.logstats import access, error
+from mollymon.contact import DAO
 
 RESP_CODE_DESC = {
     10: 'INPUT',
@@ -41,6 +42,7 @@ def generate_report(access_log: str, error_log: str, msg_db: str, capsule_name: 
     access_df = access.parse_file(access_log, since, until)
     access_df = access_df[~access_df['path'].str.startswith('/remini')] # Exclude Remini-related requests
     success_df = access_df[access_df['resp_code'] == 20]
+    error_df = error.parse_file(error_log, since, until)
 
     lines.append('## Capsule traffic')
     lines.append('')
@@ -51,6 +53,8 @@ def generate_report(access_log: str, error_log: str, msg_db: str, capsule_name: 
 
     lines.append(f'Total requests: {total}')
     lines.append(f'Unique IPs: {total_uniq_ips}')
+    lines.append(f'Errors logged: {error_df.size[0]}')
+    lines.append('')
     lines.append('Response codes:')
     for r in resp_codes.index:
         lines.append(f'* {r} ({RESP_CODE_DESC[r]}): {resp_codes[r]}')
@@ -79,6 +83,10 @@ def generate_report(access_log: str, error_log: str, msg_db: str, capsule_name: 
 
     lines.append('')
     lines.append('## Messages')
+    lines.append('')
+
+    dao = DAO(msg_db)
+    lines.append(f'Messages received: {dao.count_messages()} ({dao.count_messages(read=0)} unread)')
 
     return lines
 
