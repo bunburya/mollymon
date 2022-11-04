@@ -59,7 +59,7 @@ def generate_report(access_log: str, error_log: str, capsule_name: str, msg_db: 
     lines.append('')
     lines.append('Response codes:')
     for r, p in zip(resp_codes.index, resp_codes_pct):
-        lines.append(f'* {r} ({RESP_CODE_DESC[r]}): {resp_codes[r]} ({p}%)')
+        lines.append(f'* {r} ({RESP_CODE_DESC.get(r, "[NO DESCRIPTION]")}): {resp_codes[r]} ({p}%)')
 
     is_gemlog = success_df['path'].str.startswith('/gemlog')
     gemlog_df = success_df[is_gemlog]
