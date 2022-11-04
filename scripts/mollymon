@@ -42,6 +42,7 @@ def run_count_msgs(args: Namespace):
 
 
 def report(args: Namespace):
+    logging.debug('`report` commmand invoked.')
     if args.since:
         since = datetime.strptime(args.since, '%Y%m%d')
     else:
@@ -51,7 +52,9 @@ def report(args: Namespace):
     else:
         until = None
     db_file = db_fpath(args)
+    logging.debug(f'Trying DB file: {db_file}')
     if not os.path.exists(db_fpath(args)):
+        logging.debug(f'{db_file} does not exist.')
         db_file = None
     print_report(
         args.access_log,
