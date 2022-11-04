@@ -15,10 +15,14 @@ RUN_DIR = user_runtime_dir(PKG_NAME)
 LOG_DIR = user_log_dir(PKG_NAME)
 DATA_DIR = user_data_dir(PKG_NAME)
 
+def db_fpath(args: Namespace) -> str:
+    """Generate a path to the DB file."""
+    return os.path.join(args.data_dir, f'{PKG_NAME}.db')
+
 # "Top-level" functions, ie, those that are invoked directly by the argument parser
 
 def run_scgi(args: Namespace):
-    dao = DAO(os.path.join(args.data_dir, f'{PKG_NAME}.db'))
+    dao = DAO(db_fpath(args))
     return serve_scgi(dao, os.path.join(args.run_dir, 'contact.sock'))
 
 
@@ -28,12 +32,12 @@ def run_test(args: Namespace):
 
 
 def run_print_msgs(args: Namespace):
-    dao = DAO(args.db_file)
+    dao = DAO(db_fpath(args))
     return print_messages(dao, unread_only=args.unread, mark_read=args.mark_read)
 
 
 def run_count_msgs(args: Namespace):
-    dao = DAO(args.db_file)
+    dao = DAO(db_fpath(args))
     return print_message_count(dao, unread_only=args.unread)
 
 
@@ -46,9 +50,8 @@ def report(args: Namespace):
         until = datetime.strptime(args.until, '%Y%m%d')
     else:
         until = None
-    if os.path.exists(args.db_file):
-        db_file = args.db_file
-    else:
+    db_file = db_fpath(args)
+    if not os.path.exists(db_fpath(args)):
         db_file = None
     print_report(
         args.access_log,
