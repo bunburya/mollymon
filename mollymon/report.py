@@ -30,7 +30,7 @@ def generate_report(access_log: str, error_log: str, capsule_name: str, msg_db: 
                     since: Optional[datetime] = None, until: Optional[datetime] = None) -> list[str]:
     report_time = datetime.utcnow()
     lines = [
-        f'# Report for {capsule_name} at {report_time.isoformat()}'
+        f'# Report for {capsule_name} at {report_time.strftime("%A %d %B %Y")}'
     ]
     if (since is not None) and (until is not None):
         lines.append(f'Period from {since.isoformat()} to {until.isoformat()}.')

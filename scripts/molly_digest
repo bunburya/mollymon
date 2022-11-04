@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Generate a report summarising recent Gemini capsule activity, and rotate the logs.
+# Intended to be run weekly, and the output to be piped to a sendmail application.
+# Usage: molly_digest <MOLLYMON_DIR> <LOG_DIR> <CAPSULE_NAME> <TO_EMAIL>
+# See below for descriptions of arguments.
+
+MOLLYMON_DIR="$1"  # Base directory of mollymon source
+LOG_DIR="$2"  # Directory where Molly logs are stored
+CAPSULE_NAME="$3"  # Name of capsule
+TO_EMAIL="$4"  # Email to send digest to
+
+today_short="$(date +%Y%m%d)"
+today_long="$(date +"%A %d %B %Y")"
+lastweek_short="$(date -d "now - 7 days" +%Y%m%d)"
+
+access_file="$LOG_DIR/access_${lastweek_short}_${today_short}.log"
+error_file="$LOG_DIR/error_${lastweek_short}_${today_short}.log"
+
+mv "$LOG_DIR/access.log" "$access_file"
+mv "$LOG_DIR/error.log" "$error_file"
+
+cd "$MOLLYMON_DIR" || exit
+
+echo "To: $TO_EMAIL"
+echo "Subject: Weekly activity summary for $CAPSULE_NAME on $today_long"
+PIPENV_VERBOSITY=-1 pipenv run scripts/mollymon report "$access_file" "$error_file" "$CAPSULE_NAME"
