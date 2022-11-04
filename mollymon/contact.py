@@ -4,24 +4,23 @@ import logging
 import os
 import sqlite3 as sql
 import threading
-import argparse
 
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote
 from datetime import datetime
-from typing import List, Union, Tuple
+from typing import Any
 
 from platformdirs import user_data_dir, user_log_dir, user_runtime_dir
 
-PKG_NAME = 'mollymon'
-APP_NAME = 'contact'
 
-RUN_DIR = user_runtime_dir(PKG_NAME)
-LOG_DIR = user_log_dir(PKG_NAME)
-DATA_DIR = user_data_dir(PKG_NAME)
+# PKG_NAME = 'mollymon'
+# APP_NAME = 'contact'
+
+# RUN_DIR = user_runtime_dir(PKG_NAME)
+# LOG_DIR = user_log_dir(PKG_NAME)
+# DATA_DIR = user_data_dir(PKG_NAME)
 
 
 class DAO:
-
     # Generally, all columns should be NOT NULL, and (where appropriate) set to
     # empty strings if not relevant to a particular message. This allows us
     # to filter by entries with empty values (otherwise, there would be
@@ -59,8 +58,8 @@ class DAO:
         self.conn.commit()
 
     def select_query(self, count: bool = False, script_path: str = None, path_info: str = None,
-            tls_client_hash: str = None, ip_addr: str = None, since: datetime = None,
-            until: datetime = None, read: bool = None, rowid: list[int] = None) -> tuple[str, list[any]]:
+                     tls_client_hash: str = None, ip_addr: str = None, since: datetime = None,
+                     until: datetime = None, read: bool = None, rowid: list[int] = None) -> tuple[str, list[any]]:
         """Build a basic query for searching the database based on the given inputs.
 
         :param count: Whether to return the count of results only (as opposed to the results themselves).
@@ -71,6 +70,7 @@ class DAO:
         :param since: Return only messages left on or after the given date and time.
         :param until: Return only messages left on or before the given date and time.
         :param read: Filter by read/unread.
+        :param rowid: Return only results on the given rows.
 
         """
 
@@ -130,16 +130,24 @@ class DAO:
         with self.lock:
             return self.cursor.fetchone()
 
-    def add_message(self, script_path: str, path_info: str, tls_client_hash: str, ip_addr: str, time: datetime, msg: str):
+    def add_message(self, script_path: str, path_info: str, tls_client_hash: str, ip_addr: str, time: datetime,
+                    msg: str):
         self.sql_execute(self.ADD_MESSAGE, (script_path, path_info, tls_client_hash, ip_addr, time, msg, 0))
         self.conn.commit()
 
-    def get_messages(self, script_path: str = None, path_info: str = None, tls_client_hash: str = None, ip_addr: str = None, since: datetime = None, until: datetime = None, read: int = None) -> list[tuple]:
-        self.sql_execute(*self.select_query(script_path=script_path, path_info=path_info, tls_client_hash=tls_client_hash, ip_addr=ip_addr, since=since, until=until, read=read))
+    def get_messages(self, script_path: str = None, path_info: str = None, tls_client_hash: str = None,
+                     ip_addr: str = None, since: datetime = None, until: datetime = None, read: int = None) -> list[
+        tuple]:
+        self.sql_execute(
+            *self.select_query(script_path=script_path, path_info=path_info, tls_client_hash=tls_client_hash,
+                               ip_addr=ip_addr, since=since, until=until, read=read))
         return self.sql_fetchall()
 
-    def count_messages(self, script_path: str = None, path_info: str = None, tls_client_hash: str = None, ip_addr: str = None, since: datetime = None, until: datetime = None, read: int = None) -> int:
-        self.sql_execute(*self.select_query(count=True, script_path=script_path, path_info=path_info, tls_client_hash=tls_client_hash, ip_addr=ip_addr, since=since, until=until, read=read))
+    def count_messages(self, script_path: str = None, path_info: str = None, tls_client_hash: str = None,
+                       ip_addr: str = None, since: datetime = None, until: datetime = None, read: int = None) -> int:
+        self.sql_execute(*self.select_query(count=True, script_path=script_path, path_info=path_info,
+                                            tls_client_hash=tls_client_hash, ip_addr=ip_addr, since=since, until=until,
+                                            read=read))
         return self.sql_fetchone()[0]
 
     def mark_read(self, rowid: list[int]):
@@ -149,6 +157,7 @@ class DAO:
         elif len(rowid) == 1:
             self.sql_execute(self.MARK_READ_SINGLE, (rowid[0],))
         self.conn.commit()
+
 
 # Functions for sending Gemini responses to clients.
 
@@ -161,6 +170,7 @@ def get_input(prompt: str = '') -> bytes:
     """
     return f'10 {prompt}\r\n'.encode()
 
+
 def display_content(content: str, content_type: str = 'text/gemini') -> bytes:
     """Send a 20 (OK) response followed by the given content.
 
@@ -170,6 +180,7 @@ def display_content(content: str, content_type: str = 'text/gemini') -> bytes:
     """
     return f'20 {content_type}\r\n{content}\n'.encode()
 
+
 def temp_failure(msg: str) -> bytes:
     """Send a 40 (temporary failure) response with the given message.
 
@@ -178,6 +189,7 @@ def temp_failure(msg: str) -> bytes:
 
     """
     return f'40 {msg}\r\n'.encode()
+
 
 # Commands to query the DB from the command line.
 
@@ -195,6 +207,7 @@ def print_messages(dao: DAO, since: datetime = None, unread_only: bool = False, 
     if mark_read:
         dao.mark_read(list(r[0] for r in results))
 
+
 def print_message_count(dao: DAO, since: datetime = None, unread_only: bool = False):
     c = dao.count_messages(since=since, read=(0 if unread_only else None))
     msg = f'{c} messages'
@@ -204,20 +217,25 @@ def print_message_count(dao: DAO, since: datetime = None, unread_only: bool = Fa
         msg += '.'
     print(msg)
 
-def test():
+
+def test_contact():
     TEST_DB_FILE = '/tmp/gemnote_test.sql'
     if os.path.exists(TEST_DB_FILE):
         os.remove(TEST_DB_FILE)
     t1 = datetime(2022, 6, 19, 15, 33)
     t2 = datetime(2022, 7, 24, 2, 19)
     dao = DAO(TEST_DB_FILE)
-    dao.add_message('/test/path/1', 'path_info_1', '', '127.0.0.1', datetime(2022, 4, 20, 12, 6), 'This is test comment 1')
-    dao.add_message('/test/path/2', 'path_info_2', '', '127.0.0.2', datetime(2022, 5, 12, 7, 40), 'This is test comment 2')
-    dao.add_message('/test/path/2', 'path_info_3', 'test_hash', '127.0.0.3', datetime(2022, 6, 25, 12, 44), 'This is test comment 3')
-    dao.add_message('/test/path/3', 'path_info_4', '', '127.0.0.1', datetime(2022, 8, 2, 12, 30), 'This is test comment 4')
+    dao.add_message('/test/path/1', 'path_info_1', '', '127.0.0.1', datetime(2022, 4, 20, 12, 6),
+                    'This is test comment 1')
+    dao.add_message('/test/path/2', 'path_info_2', '', '127.0.0.2', datetime(2022, 5, 12, 7, 40),
+                    'This is test comment 2')
+    dao.add_message('/test/path/2', 'path_info_3', 'test_hash', '127.0.0.3', datetime(2022, 6, 25, 12, 44),
+                    'This is test comment 3')
+    dao.add_message('/test/path/3', 'path_info_4', '', '127.0.0.1', datetime(2022, 8, 2, 12, 30),
+                    'This is test comment 4')
 
     results = dao.get_messages()
-    #print(results)
+    # print(results)
     assert len(results) == 4
     assert dao.count_messages() == 4
     for r in results:
@@ -226,11 +244,11 @@ def test():
     results = dao.get_messages(ip_addr='127.0.0.1')
     assert len(results) == 2
     for r in results:
-        #print(r)
+        # print(r)
         assert r[4] == '127.0.0.1'
 
     results = dao.get_messages(since=t1)
-    #print(results)
+    # print(results)
     assert len(results) == 2
 
     results = dao.get_messages(since=t1, until=t2)
@@ -246,7 +264,6 @@ def test():
 
 
 def serve_scgi(dao: DAO, sock_fpath: str):
-    
     import socket
     import scgi.scgi_server
 
@@ -256,7 +273,7 @@ def serve_scgi(dao: DAO, sock_fpath: str):
 
     if os.path.exists(sock_fpath):
         os.remove(sock_fpath)
-    
+
     class RequestHandler(scgi.scgi_server.SCGIHandler):
 
         def produce(self, env, bodysize, input, output):
@@ -277,39 +294,24 @@ def serve_scgi(dao: DAO, sock_fpath: str):
                 resp = get_input('Please enter your message.')
 
             output.write(resp)
-    
+
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.bind(sock_fpath)
     server = scgi.scgi_server.SCGIServer(handler_class=RequestHandler)
     server.serve_on_socket(s)
 
-# "Top-level" functions, ie, those that are invoked directly by the argument parser
 
-def run_scgi(args: argparse.Namespace):
-    dao = DAO(args.db_file)
-    return serve_scgi(dao, args.sock_file)
-
-def run_test(args: argparse.Namespace):
-    test()
-    print('Tests passed.')
-
-def run_print_msgs(args: argparse.Namespace):
-    dao = DAO(args.db_file)
-    return print_messages(dao, unread_only=args.unread, mark_read=args.mark_read)
-
-def run_count_msgs(args: argparse.Namespace):
-    dao = DAO(args.db_file)
-    return print_message_count(dao, unread_only=args.unread)
-
-
+"""
 def get_argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Allow leaving messages on a Gemini capsule.')
     parser.add_argument('--debug', action='store_true', help='Debug mode.')
     parser.add_argument('--log-file', help='Specify where to store application logs. Log to stderr by default.')
-    parser.add_argument('--db-file', help='The database file to use for storing and retrieving messages.', default=os.path.join(DATA_DIR, f'{APP_NAME}.db'))
+    parser.add_argument('--db-file', help='The database file to use for storing and retrieving messages.',
+                        default=os.path.join(DATA_DIR, f'{APP_NAME}.db'))
     subparsers = parser.add_subparsers()
     run_parser = subparsers.add_parser('run', help='Run the SCGI application.')
-    run_parser.add_argument('--sock-file', help='Where to store the socket file.', default=os.path.join(RUN_DIR, f'{APP_NAME}.sock'))
+    run_parser.add_argument('--sock-file', help='Where to store the socket file.',
+                            default=os.path.join(RUN_DIR, f'{APP_NAME}.sock'))
     run_parser.set_defaults(func=run_scgi)
     print_parser = subparsers.add_parser('print', help='Print messages.')
     print_parser.add_argument('--unread', action='store_true', help='Print unread messages only.')
@@ -321,6 +323,8 @@ def get_argparser() -> argparse.ArgumentParser:
     test_parser = subparsers.add_parser('test', help='Run some basic tests to verify functionality.')
     test_parser.set_defaults(func=run_test)
     return parser
+
+
 
 def main(argv: list[str]):
     parser = get_argparser()
@@ -338,3 +342,4 @@ def main(argv: list[str]):
 if __name__ == '__main__':
     import sys
     main(sys.argv)
+"""

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -10,7 +11,7 @@ Some functions designed to parse and return interesting stats from Molly Brown e
 
 
 def parse_line(line: str) -> tuple[datetime, str]:
-    """Parse a single line of a Molly Brown access log file.
+    """Parse a single line of a Molly Brown error log file.
 
     :param line: The line to parse.
     :returns: A tuple containing:
@@ -28,7 +29,7 @@ def parse_line(line: str) -> tuple[datetime, str]:
 
 
 def parse_file(fpath: str, since: datetime = None, until: datetime = None) -> pd.DataFrame:
-    """Parse a Molly Brown access log file.
+    """Parse a Molly Brown error log file.
 
     :param fpath: Path to the file to parse.
     :param since: Only include entries after this date and time.
@@ -37,9 +38,10 @@ def parse_file(fpath: str, since: datetime = None, until: datetime = None) -> pd
     """
     rows = []
     columns = ['date_time', 'err_msg']
-    with open(fpath) as f:
+    with open(fpath, 'rb') as f:
         for line in f:
-            data = parse_line(line)
+            logging.debug(f'Parsing line: {line}')
+            data = parse_line(line.decode(errors='replace'))
             if (since is not None) and (data[0] <= since):
                 continue
             if (until is not None) and (data[0] >= until):

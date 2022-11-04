@@ -53,7 +53,7 @@ def generate_report(access_log: str, error_log: str, msg_db: str, capsule_name: 
 
     lines.append(f'Total requests: {total}')
     lines.append(f'Unique IPs: {total_uniq_ips}')
-    lines.append(f'Errors logged: {error_df.size[0]}')
+    lines.append(f'Errors logged: {error_df.size}')
     lines.append('')
     lines.append('Response codes:')
     for r in resp_codes.index:
@@ -90,7 +90,7 @@ def generate_report(access_log: str, error_log: str, msg_db: str, capsule_name: 
 
     return lines
 
-
-
-
-
+def print_report(access_log: str, error_log: str, msg_db: str, capsule_name: str, since: datetime = None,
+                 until: datetime = None):
+    for line in generate_report(access_log, error_log, msg_db, capsule_name, since, until):
+        print(line)
