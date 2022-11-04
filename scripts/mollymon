@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import logging
 import os
-import sys
-
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 
@@ -17,15 +15,11 @@ RUN_DIR = user_runtime_dir(PKG_NAME)
 LOG_DIR = user_log_dir(PKG_NAME)
 DATA_DIR = user_data_dir(PKG_NAME)
 
-DEFAULT_SOCK = os.path.join(RUN_DIR, f'contact.sock')
-DEFAULT_MSG_DB = os.path.join(DATA_DIR, 'contact.db')
-
-
 # "Top-level" functions, ie, those that are invoked directly by the argument parser
 
 def run_scgi(args: Namespace):
-    dao = DAO(args.db_file)
-    return serve_scgi(dao, args.sock_file)
+    dao = DAO(os.path.join(args.data_dir, f'{PKG_NAME}.db'))
+    return serve_scgi(dao, os.path.join(args.run_dir, 'contact.sock'))
 
 
 def run_test(args: Namespace):
@@ -69,8 +63,9 @@ def report(args: Namespace):
 parser = ArgumentParser(description='Utility to monitor Gemini server traffic and activity.')
 parser.add_argument('--debug', '-d', action='store_true', help='Debug mode (verbose logging).')
 parser.add_argument('--log-file', help='File to log to.')
-parser.add_argument('--db_file', metavar='DB_FILE', default=DEFAULT_MSG_DB,
-                           help='Path to database file where messages are stored.')
+parser.add_argument('--run-dir', metavar='RUN_DIR', default=RUN_DIR,
+                    help='Directory for storing runtime data, eg, socket files.')
+parser.add_argument('--data-dir', metavar='DATA_DIR', default=DATA_DIR, help='Directory for storing application data.')
 
 subparsers = parser.add_subparsers()
 
@@ -91,8 +86,6 @@ contact_parser = subparsers.add_parser(
 
 contact_subparsers = contact_parser.add_subparsers()
 run_parser = contact_subparsers.add_parser('run', help='Launch contact SCGI application.')
-run_parser.add_argument('--sock-file', help='Where to store the socket file.',
-                        default=DEFAULT_SOCK)
 run_parser.set_defaults(func=run_scgi)
 print_parser = contact_subparsers.add_parser('print', help='Print messages.')
 print_parser.add_argument('--unread', action='store_true', help='Print unread messages only.')
