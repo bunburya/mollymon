@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import logging
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -65,13 +65,15 @@ def parse_file(fpath: str, since: datetime = None, until: datetime = None) -> pd
     columns = ['date_time', 'ip_addr', 'resp_code', 'netloc', 'path', 'params', 'query', 'fragment', 'request_body']
     with open(fpath) as f:
         for line in f:
+            logging.debug(f'Parsing line: {line.strip()}')
             data = parse_line(line)
             if (since is not None) and (data[0] <= since):
                 continue
             if (until is not None) and (data[0] >= until):
                 continue
             rows.append(data)
-    return pd.DataFrame(rows, columns=columns)
+    df = pd.DataFrame(rows, columns=columns)
+    return df
 
 
 # Convenience functions for filtering the data

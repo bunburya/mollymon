@@ -52,11 +52,15 @@ def report(args: Namespace):
         until = datetime.strptime(args.until, '%Y%m%d')
     else:
         until = None
+    if os.path.exists(args.db_file):
+        db_file = args.db_file
+    else:
+        db_file = None
     print_report(
         args.access_log,
         args.error_log,
-        args.db_file,
         args.capsule_name,
+        db_file,
         since,
         until
     )
